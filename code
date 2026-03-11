@@ -1,0 +1,67 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include "BluetoothSerial.h"
+
+BluetoothSerial SerialBT;
+
+// LCD address (usually 0x27)
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// Pins
+int tempPin = 32;   // LM35 output
+int ledPin = 15;    // LED
+int buzzerPin = 2;  // Buzzer
+
+void setup() {
+  Serial.begin(115200);
+  SerialBT.begin("ESP32_HEALTH_MONITOR");
+
+  pinMode(ledPin, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+
+  analogSetAttenuation(ADC_11db);
+
+  lcd.init();
+  lcd.backlight();
+
+  lcd.setCursor(0,0);
+  lcd.print("Health Monitor");
+  delay(2000);
+  lcd.clear();
+}
+
+void loop() {
+
+  int value = analogRead(tempPin);
+
+  float voltage = value * (3.3 / 4095.0);
+  float temperature = voltage * 100;
+
+  Serial.print("Temp: ");
+  Serial.println(temperature);
+
+  SerialBT.print("Temperature: ");
+  SerialBT.println(temperature);
+
+  lcd.setCursor(0,0);
+  lcd.print("Temp: ");
+  lcd.print(temperature);
+  lcd.print(" C   ");
+
+  if (temperature > 37) {
+    digitalWrite(ledPin, HIGH);
+    digitalWrite(buzzerPin, HIGH);
+
+    lcd.setCursor(0,1);
+    lcd.print("HIGH TEMP ALERT");
+  }
+  else {
+    digitalWrite(ledPin, LOW);
+    digitalWrite(buzzerPin, LOW);
+
+    lcd.setCursor(0,1);
+    lcd.print("Normal Temp    ");
+  }
+
+  delay(1000);
+}
